@@ -131,3 +131,14 @@ export function getImageUrl(storagePath: string | null): string {
     const { data } = supabase.storage.from("artworks").getPublicUrl(storagePath);
     return data.publicUrl;
 }
+
+export function getSignatureUrl(storagePath: string | null | undefined): string {
+    if (!storagePath) return "";
+    if (storagePath.startsWith("http://") || storagePath.startsWith("https://") || storagePath.startsWith("data:")) {
+        return storagePath;
+    }
+    const supabase = getSupabaseBrowserClient();
+    const cleanPath = storagePath.startsWith("signatures/") ? storagePath.replace("signatures/", "") : storagePath;
+    const { data } = supabase.storage.from("signatures").getPublicUrl(cleanPath);
+    return data.publicUrl;
+}

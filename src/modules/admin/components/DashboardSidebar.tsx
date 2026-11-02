@@ -83,6 +83,9 @@ const ROLE_LABELS: Record<UserRole, string> = {
     editor: "Editor",
     conservador: "Conservador",
     visitante: "Visitante",
+    seguridad: "Seguridad",
+    bienes: "Bienes Nacionales",
+    jefe: "Jefe / Director",
 };
 
 export function DashboardSidebar({ userName, userRole }: SidebarProps) {
