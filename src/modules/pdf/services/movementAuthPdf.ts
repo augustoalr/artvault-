@@ -23,6 +23,11 @@ export interface AuthPdfData {
     bienesOfficerName: string | null;
     bienesOfficerId: string | null;
     bienesApprovedAt: string | null;
+    chiefName?: string | null;
+    chiefIdNumber?: string | null;
+    chiefDepartment?: string | null;
+    chiefAuthorizedAt?: string | null;
+    chiefSignatureUrl?: string | null;
     securityOfficerName: string | null;
     securityOfficerId: string | null;
     authorizedAt: string | null;
@@ -179,47 +184,138 @@ export async function generateMovementAuthPdf(data: AuthPdfData): Promise<void> 
 
     // ─── Signature Blocks ──────────────────────────────────────────
 
-    doc.setFillColor(248, 247, 245);
-    doc.setDrawColor(220, 220, 220);
-    doc.roundedRect(margin, y, (pageWidth - margin * 2 - 8) / 2, 38, 2, 2, "FD");
-    doc.roundedRect(margin + (pageWidth - margin * 2 - 8) / 2 + 8, y, (pageWidth - margin * 2 - 8) / 2, 38, 2, 2, "FD");
+    const hasChief = !!data.chiefName;
+    const blockWidth = (pageWidth - margin * 2 - 8) / 2;
+    const blockHeight = 38;
 
-    const col1X = margin + 6;
-    const col2X = margin + (pageWidth - margin * 2 - 8) / 2 + 14;
+    // Check if new page is needed for signatures
+    const requiredHeight = hasChief ? 90 : 50;
+    if (y + requiredHeight > doc.internal.pageSize.getHeight() - 20) {
+        doc.addPage();
+        addHeader(doc, 2, 2);
+        y = 45;
+    }
 
-    // Block 1: Bienes Nacionales
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(100, 100, 100);
-    doc.text("APROBADO POR — BIENES NACIONALES", col1X, y + 8);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(20, 20, 20);
-    doc.setFontSize(9);
-    doc.text(`Nombre: ${data.bienesOfficerName ?? "___________________________"}`, col1X, y + 16);
-    doc.text(`C.I.: ${data.bienesOfficerId ?? "___________________________"}`, col1X, y + 23);
-    doc.text(`Fecha: ${formatDate(data.bienesApprovedAt)}`, col1X, y + 30);
+    if (hasChief) {
+        // Row 1: Bienes Nacionales & Jefe de Dependencia
+        doc.setFillColor(248, 247, 245);
+        doc.setDrawColor(220, 220, 220);
+        doc.roundedRect(margin, y, blockWidth, blockHeight, 2, 2, "FD");
+        doc.roundedRect(margin + blockWidth + 8, y, blockWidth, blockHeight, 2, 2, "FD");
 
-    // Block 2: Seguridad
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(100, 100, 100);
-    doc.text("AUTORIZADO POR — OFICIAL DE SEGURIDAD", col2X, y + 8);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(20, 20, 20);
-    doc.setFontSize(9);
-    doc.text(`Nombre: ${data.securityOfficerName ?? "___________________________"}`, col2X, y + 16);
-    doc.text(`C.I.: ${data.securityOfficerId ?? "___________________________"}`, col2X, y + 23);
-    doc.text(`Fecha: ${formatDate(data.authorizedAt)}`, col2X, y + 30);
+        const col1X = margin + 6;
+        const col2X = margin + blockWidth + 14;
 
-    y += 46;
+        // Block 1: Bienes Nacionales
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(100, 100, 100);
+        doc.text("APROBADO POR — BIENES NACIONALES", col1X, y + 8);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(20, 20, 20);
+        doc.setFontSize(8.5);
+        doc.text(`Nombre: ${data.bienesOfficerName ?? "___________________________"}`, col1X, y + 16);
+        doc.text(`C.I.: ${data.bienesOfficerId ?? "___________________________"}`, col1X, y + 23);
+        doc.text(`Fecha: ${formatDate(data.bienesApprovedAt)}`, col1X, y + 30);
 
-    // Stamp line
-    doc.setDrawColor(200, 200, 200);
-    doc.setLineWidth(0.3);
-    doc.line(margin, y, pageWidth - margin, y);
-    doc.setFontSize(7);
-    doc.setTextColor(150, 150, 150);
-    doc.text("Firma y sello institucional: _________________________________", margin, y + 5);
+        // Block 2: Jefe de Dependencia / Custodio
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(100, 100, 100);
+        doc.text("AUTORIZADO POR — JEFE DE DEPENDENCIA", col2X, y + 8);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(20, 20, 20);
+        doc.setFontSize(8.5);
+        doc.text(`Nombre: ${data.chiefName ?? "___________________________"}`, col2X, y + 15);
+        doc.text(`C.I.: ${data.chiefIdNumber ?? "___________________________"}`, col2X, y + 21);
+        doc.text(`Dpto: ${data.chiefDepartment ?? "Patrimonio Cultural"}`, col2X, y + 27);
+        doc.text(`Fecha: ${formatDate(data.chiefAuthorizedAt)}`, col2X, y + 33);
+
+        // Attempt to embed signature if available
+        if (data.chiefSignatureUrl) {
+            try {
+                doc.addImage(data.chiefSignatureUrl, "PNG", col2X + 46, y + 12, 26, 16);
+            } catch (err) {
+                console.warn("Could not embed chief signature in PDF:", err);
+            }
+        }
+
+        y += blockHeight + 6;
+
+        // Row 2: Seguridad & Sello Institucional
+        doc.setFillColor(248, 247, 245);
+        doc.setDrawColor(220, 220, 220);
+        doc.roundedRect(margin, y, blockWidth, blockHeight, 2, 2, "FD");
+        doc.roundedRect(margin + blockWidth + 8, y, blockWidth, blockHeight, 2, 2, "FD");
+
+        // Block 3: Seguridad
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(100, 100, 100);
+        doc.text("DESPACHO / OFICIAL DE SEGURIDAD", col1X, y + 8);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(20, 20, 20);
+        doc.setFontSize(8.5);
+        doc.text(`Nombre: ${data.securityOfficerName ?? "___________________________"}`, col1X, y + 16);
+        doc.text(`C.I.: ${data.securityOfficerId ?? "___________________________"}`, col1X, y + 23);
+        doc.text(`Fecha: ${formatDate(data.authorizedAt)}`, col1X, y + 30);
+
+        // Block 4: Sello Institucional
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(100, 100, 100);
+        doc.text("SELLO INSTITUCIONAL / CUSTODIA", col2X, y + 8);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7.5);
+        doc.setTextColor(150, 150, 150);
+        doc.text("Espacio reservado para sello húmedo", col2X, y + 18);
+        doc.text("y rúbrica de contraloría patrimonial.", col2X, y + 23);
+
+        y += blockHeight + 10;
+    } else {
+        // Legacy 2-column layout
+        doc.setFillColor(248, 247, 245);
+        doc.setDrawColor(220, 220, 220);
+        doc.roundedRect(margin, y, blockWidth, 38, 2, 2, "FD");
+        doc.roundedRect(margin + blockWidth + 8, y, blockWidth, 38, 2, 2, "FD");
+
+        const col1X = margin + 6;
+        const col2X = margin + blockWidth + 14;
+
+        // Block 1: Bienes Nacionales
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(100, 100, 100);
+        doc.text("APROBADO POR — BIENES NACIONALES", col1X, y + 8);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(20, 20, 20);
+        doc.setFontSize(9);
+        doc.text(`Nombre: ${data.bienesOfficerName ?? "___________________________"}`, col1X, y + 16);
+        doc.text(`C.I.: ${data.bienesOfficerId ?? "___________________________"}`, col1X, y + 23);
+        doc.text(`Fecha: ${formatDate(data.bienesApprovedAt)}`, col1X, y + 30);
+
+        // Block 2: Seguridad
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(100, 100, 100);
+        doc.text("AUTORIZADO POR — OFICIAL DE SEGURIDAD", col2X, y + 8);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(20, 20, 20);
+        doc.setFontSize(9);
+        doc.text(`Nombre: ${data.securityOfficerName ?? "___________________________"}`, col2X, y + 16);
+        doc.text(`C.I.: ${data.securityOfficerId ?? "___________________________"}`, col2X, y + 23);
+        doc.text(`Fecha: ${formatDate(data.authorizedAt)}`, col2X, y + 30);
+
+        y += 46;
+
+        // Stamp line
+        doc.setDrawColor(200, 200, 200);
+        doc.setLineWidth(0.3);
+        doc.line(margin, y, pageWidth - margin, y);
+        doc.setFontSize(7);
+        doc.setTextColor(150, 150, 150);
+        doc.text("Firma y sello institucional: _________________________________", margin, y + 5);
+    }
 
     addFooter(doc);
 
