@@ -31,9 +31,6 @@ export interface AuthPdfData {
     securityOfficerName: string | null;
     securityOfficerId: string | null;
     authorizedAt: string | null;
-    chiefOfficerName?: string | null;
-    chiefDepartment?: string | null;
-    chiefApprovedAt?: string | null;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
