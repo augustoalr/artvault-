@@ -260,9 +260,9 @@ export function SecurityPortalView({ requests, historicalRequests, userName }: S
                 securityOfficerName: selectedRequest.security_officer_name,
                 securityOfficerId: selectedRequest.security_officer_id,
                 authorizedAt: selectedRequest.authorized_at,
-                chiefOfficerName: selectedRequest.chief_name,
+                chiefName: selectedRequest.chief_name,
                 chiefDepartment: selectedRequest.chief_department,
-                chiefApprovedAt: selectedRequest.chief_authorized_at,
+                chiefAuthorizedAt: selectedRequest.chief_authorized_at,
             };
             await generateMovementAuthPdf(pdfData);
         } catch (e) {
