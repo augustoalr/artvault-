@@ -1,0 +1,84 @@
+===EXPLICACIÓN DE COMO FUNCIONA NUESTRA BASE DE DATOS===
+Cada obra tiene una “ficha técnica” que esta formada por 4 paginas y de la siguiente manera:
+<PRIMERA PÁGINA>
+-La primera página de la ficha técnica de cada obra se muestra con un encabezado donde va el logo de la institución en la esquina superior izquierda, debajo del logo el texto: 
+	Dirección de Patrimonio Cultural (esquina superior izquierda debajo del logo)
+	Ficha de registro general (centrado)
+-Seguido de los datos de la obra en el siguiente orden:
+N° de registro 48536
+Autor 
+Título 
+Fecha 
+Categoría (Lista desplegable)
+Técnica / materiales
+Medidas
+Procedencia (Lista desplegable)
+Fecha de ingreso
+Propietario original
+Dirección
+Localización de la obra
+Registro fotográfico:
+	*Lista desplegable para elegir el tipo
+	*Input para escribir el nombre del fotógrafo
+-Del lado derecho de esta primera pagina a la altura de los datos técnicos de la obra tenemos un campo donde se adjunta la fotografía de la obra.
+
+<SEGUNDA PÁGINA >
+
+-La segunda página de la ficha técnica de cada obra se muestra con un encabezado donde va el logo de la institución en la esquina superior izquierda, debajo del logo el texto: 
+	Dirección de Patrimonio Cultural (esquina superior izquierda debajo del logo)
+	Ficha de registro general (centrado)
+-Seguido de un campo de texto donde se registra manualmente “Historia, Préstamos y movimientos de la obra” por ejemplo:
+     *Salón Bolívar desde el 19-08-2025 hasta el 31-12-2025
+Sería muy beneficioso automatiza lo más que se puede este campo de texto para evitar escribir tanto. 
+-Luego viene un campo de texto con la Biografía del autor de la obra, este campo debería tener un input tipo lista desplegable donde se seleccione el nombre de la persona que realizó la investigación.
+
+<TERCERA PÁGINA >
+-La tercera página de la ficha técnica de cada obra se muestra con un encabezado donde va el logo de la institución en la esquina superior izquierda, debajo del logo el texto:
+Dirección de Patrimonio Cultural (esquina superior izquierda debajo del logo)
+	Ficha de registro general (centrado)
+-Seguido de un campo de texto donde se registra manualmente la: 
+Descripción del montaje: Características técnicas, montaje y descripción de los materiales
+
+-Seguido de un campo de texto donde se registra manualmente las:
+	
+Observaciones generales
+
+-Seguido de 7 inputs distribuidos de la siguiente manera:
+Inputs y campos de texto para el paso 2:
+
+-Descripción del montaje: Características técnicas, montaje y descripción de los materiales (Campo de texto amplio)
+-Observaciones generales (Campo de texto amplio)
+
+Inputs para el Paso 3:
+-Ingreso aprobado por:
+-Valor inicial Bs:	
+-Valor USD:
+-Fecha de avalúo:
+-Registro realizado por: entrada automática con el nombre del usuario de la actual sesión
+-Registro revisado por: entrada manual
+-Fecha de realización: entrada automática con la fecha de creación del registro
+
+<CUARTA PÁGINA >
+-La cuarta página de la ficha técnica de cada obra se muestra con un encabezado donde va el logo de la institución en la esquina superior izquierda, debajo del logo el texto:
+Dirección de Patrimonio Cultural (esquina superior izquierda debajo del logo)
+	Ficha de registro general (centrado)
+-Seguido de un campo de texto donde se registra manualmente el:
+DIAGNÓSTICO Y ESTADO DE CONSERVACIÓN DE LA OBRA
+-Seguido de un campo de texto donde se registra manualmente las:
+RECOMENDACIONES
+-Seguido de dos campos uno a la izquierda y otro a la derecha donde se adjuntan fotografías
+===FIN DE LAS PAGINAS===
+--La base de datos tiene un buscador, al darle a la lupa se limpia todo el form y se puede buscar usando como apoyo los inputs de los datos básicos de las obras es decir se puede buscar, por nro de bien, por autor, por titulo, por fecha, por técnica, por medidas. Aunque no se que tan beneficioso sea esto, yo sería partidiario de buscar por nro de bien, por autor , por titulo y por técnica. 
+-Cuenta con botones para agregar nuevos registros, editar ficha, eliminar, compartir en pdf una ficha, escoger cuales paginas se quieren compartir, exportar en pdf múltiples registros usando búsquedas filtradas por ejemplo, buscar todas las obras del autor Alirio Palacios y exportarlas automáticamente en PDF las hojas que el usuario decida, y todas las funciones que una base de datos de este tipo debería tener.
+
+===FIN DE LA EXPLICACION DE COMO FUNCIONA NUESTRA BASE DE DATOS===
+
+
+===CLARIFICACIÒN===
+-Estoy abierto a cualquier mejora que le puedas hacer a cada página, tomando en cuenta que es muy importante mantener la primera pagina con el mismo orden original de los datos técnicos de la obra.
+-Cada lista desplegable tiene que tener la opción de agregar y guardar un dato nuevo
+-La pagina que trata sobre el diagnostico e informe de restauración debería ser rediseñada y estar “aparte” es decir que el usuario registrador solo se encargue de llenar las primeras 3 páginas, pero que en el front visiblemente se vea la opción de agregar la pagina para que el equipo de conservación y restauración sea el encargado de alimentar esa parte que les corresponde a ellos. 
+-El nuevo sistema debería tener la opción de optimizar automáticamente las fotografías que se suban de la obra o si es muy complicado advertirle al usuario que la fotografía tiene que tener un peso inferior a 1mb de lo contrario no será aceptada por el sistema.
+-Es muy importante que el sistema guarde un historial que se pueda consultar y sea visualmente atractivo los últimos cambios realizados por cada usuario.
+-Es importante que el modal de confirmación cuando intentas eliminar un registro pida una contraseña maestra que la tendrá el administrador. 
+-Tiene que tener la posibilidad de exportar/importar un backup

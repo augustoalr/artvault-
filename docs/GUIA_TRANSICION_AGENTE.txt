@@ -1,0 +1,83 @@
+GUÍA MÁESTRA: CÓMO INICIAR UNA NUEVA SESIÓN CON UN NUEVO AGENTE
+PROYECTO: ARTICO (ArtVault)
+
+Esta guía detalla los pasos exactos para garantizar una transición fluida al iniciar una nueva conversación con una Inteligencia Artificial (Agente) diferente o en una nueva sesión, asegurando que mantenga la coherencia arquitectónica y el "vibe" del proyecto.
+
+================================================================================
+1. PREMISA FUNDAMENTAL: EL CONTEXTO ES REY
+================================================================================
+El nuevo agente no "sabe" lo que acabamos de hacer a menos que se lo digas. Sin embargo, no necesitas copiar y pegar todo el código. La clave es explicar la ARQUITECTURA y las REGLAS DE ORO.
+
+================================================================================
+2. EL "PROMPT DE ATERRIZAJE" (COPIA Y PEGA ESTO)
+================================================================================
+Al iniciar la nueva conversación, utiliza este prompt estructurado. Esto alineará al agente inmediatamente con nuestros estándares.
+
+--- INICIO DEL PROMPT ---
+
+"Actúa como un Arquitecto de Software Senior especializado en Next.js 14 (App Router), TypeScript y Supabase.
+Estoy trabajando en un proyecto existente llamado 'Artico' (Gestión de Inventario de Arte).
+Tu objetivo es continuar el desarrollo sin romper la arquitectura actual.
+
+CONTEXTO TÉCNICO:
+1. Framework: Next.js 14 con Server Actions (sin API routes tradicionales).
+2. Base de Datos: Supabase (PostgreSQL). Usamos Row Level Security (RLS).
+3. Estilos: CSS Modules / Tailwind (pero preferimos variables CSS semánticas para mantener el diseño 'Premium Gallery').
+4. Estado: Usamos React Context para estados globales complejos (ej: Cesta de Movimientos).
+
+REGLAS INQUEBRANTABLES (PRIME DIRECTIVES):
+1. **Integridad Estructural**: Nunca mezcles lógica de base de datos en componentes de UI. Usa siempre servicios (`services/`) y acciones (`actions/`).
+2. **Diseño Atómico**: No uses colores hardcodeados (ej: #fff). Usa las variables CSS definidas (ej: `var(--art-bg-surface)`).
+3. **Seguridad**: Respetar los roles (admin, editor, conservador, seguridad). El rol 'seguridad' tiene un portal exclusivo (`/security-portal`).
+4. **Persistencia**: Si creas una nueva funcionalidad crítica, actualiza los tipos en `types.ts` primero.
+
+ESTADO ACTUAL:
+- Sistema de Login/Roles funcionando.
+- Inventario y Catálogo implementados.
+- Módulo de 'Movimientos por Lotes' y 'Portal de Seguridad' recien terminados.
+
+TU PRIMERA TAREA:
+[AQUÍ DESCRIBE TU NUEVA TAREA ESPECÍFICA]"
+
+--- FIN DEL PROMPT ---
+
+================================================================================
+3. QUÉ ARCHIVOS COMPARTIR (SI ES NECESARIO)
+================================================================================
+Si el agente tiene acceso a tu sistema de archivos (como yo), solo dile la ruta: `d:\Proyectos\artico`.
+
+Si estás en un chat web sin acceso a tu disco, comparte estos archivos clave primero para que entienda el mapa del territorio:
+1. `src/lib/supabase/types.ts`: Es el "mapa" de la base de datos. Al leer esto, el agente entenderá todo el modelo de negocio (Obras, Movimientos, Autores, Seguros).
+2. `package.json`: Para que sepa qué librerías exactas tenemos instaladas.
+3. `src/app/layout.tsx`: Para entender la estructura visual base.
+
+================================================================================
+4. ERRORES COMUNES A EVITAR
+================================================================================
+x NO le pidas "Mejora esto" sin contexto. Podría reescribir código que ya estaba optimizado para nuestra arquitectura.
+x NO permitas que instale librerías nuevas sin preguntar (ej: si instala Redux cuando ya usamos Context).
+x NO dejes que toque `types.ts` (base de datos) sin una migración SQL correspondiente.
+
+================================================================================
+5. LISTA DE VERIFICACIÓN PARA LA PRIMERA RESPUESTA
+================================================================================
+Cuando el nuevo agente te de su primera respuesta de código, verifica:
+[ ] ¿Usó Server Actions o intentó crear una API Route? (Queremos Server Actions).
+[ ] ¿Usó las variables de color del proyecto o puso colores hex? (Queremos variables).
+[ ] ¿Manejó el error si la base de datos falla?
+
+================================================================================
+6. ¿CUÁNDO ABRIR UNA NUEVA PESTAÑA/CONVERSACIÓN?
+================================================================================
+Abrir una nueva pestaña no es solo por limpieza, es una estrategia de rendimiento.
+
+RECOMENDACIONES DE REINICIO:
+1. CAMBIO DE CONTEXTO MAYOR: Si terminaste el 'Portal de Seguridad' y ahora vas a trabajar en 'Reportes PDF', abre una pestaña nueva. El agente no necesita tener en memoria los errores de CSS de ayer para generar un PDF hoy.
+2. SATURACIÓN DE CHAT (Lentitud): Si el chat se siente lento o has pegado muchos logs de error largos, el agente puede empezar a alucinar o ignorar instrucciones. Pestaña nueva = Cerebro fresco.
+3. BLOQUEO TÉCNICO: Si llevas 5 intentos fallidos con un bug y el agente insiste en la misma solución, una pestaña nueva con el código actual le permite abordar el problema desde un ángulo diferente sin el "sesgo" de los intentos anteriores.
+4. CIERRE DE HITOS: Al terminar un [x] en tu implementación, es un excelente momento para limpiar y pasar al siguiente hito con una nota de lo logrado.
+
+ESTRATEGIA EFICIENTE:
+- Mantén esta guía abierta siempre.
+- Usa el comando para ver archivos solo para lo que vas a tocar.
+- Si el proyecto crece mucho, menciona siempre el `types.ts` al inicio.
