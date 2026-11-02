@@ -155,6 +155,23 @@ export async function authorizeMovementByChief(
         return { success: false, error: "Solicitud no encontrada" };
     }
 
+    if (request.status !== "pending_chief") {
+        return {
+            success: false,
+            error: `La solicitud no está pendiente de autorización por jefatura (estado actual: ${request.status})`,
+        };
+    }
+
+    // Validate that all authorized artwork IDs belong to the requested artworks
+    const requestedArtworks = new Set((request.artwork_ids as string[]) ?? []);
+    const invalidArtworks = params.authorizedArtworkIds.filter(id => !requestedArtworks.has(id));
+    if (invalidArtworks.length > 0) {
+        return {
+            success: false,
+            error: "Se intentó autorizar obras que no forman parte de la solicitud original",
+        };
+    }
+
     // Handle signature upload or persistence
     let signatureStoragePath: string | null = null;
 
