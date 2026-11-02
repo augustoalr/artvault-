@@ -71,17 +71,16 @@ export async function getRequestArtworks(requestId: string) {
     const supabase = await getSupabaseServerClient();
     const { data: request } = await supabase
         .from("movement_requests")
-        .select("artwork_ids, authorized_artwork_ids")
+        .select("artwork_ids")
         .eq("id", requestId)
         .single();
 
-    const targetArtworkIds = (request?.authorized_artwork_ids && request.authorized_artwork_ids.length > 0 ? request.authorized_artwork_ids : request?.artwork_ids) as string[] ?? [];
-    if (!targetArtworkIds.length) return [];
+    if (!request?.artwork_ids?.length) return [];
 
     const { data: artworks, error } = await supabase
         .from("artworks")
         .select("id, title, inventory_number, author, technique, artwork_location, media_assets(storage_path, is_primary)")
-        .in("id", targetArtworkIds);
+        .in("id", request.artwork_ids as string[]);
 
     if (error) { console.error("getRequestArtworks:", error); return []; }
     return artworks ?? [];
@@ -143,7 +142,7 @@ export async function rejectRequestAction(
         .from("movement_requests")
         .update({ status: "rejected" })
         .eq("id", requestId)
-        .in("status", ["pending_bienes", "pending_security"]);
+        .in("status", ["pending_bienes", "pending_chief", "pending_security"]);
 
     if (error) return { success: false, error: "Error al rechazar: " + error.message };
 
@@ -164,7 +163,8 @@ export async function rejectRequestAction(
 export async function authorizeRequestAction(
     requestId: string,
     officerName: string,
-    officerId: string
+    officerId: string,
+    verifiedArtworkIds?: string[]
 ): Promise<ActionResult> {
     const supabase = await getSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -179,17 +179,37 @@ export async function authorizeRequestAction(
 
     if (reqError || !request) return { success: false, error: "Solicitud no encontrada o ya procesada" };
 
-    const artworkIds = (
-        request.authorized_artwork_ids && request.authorized_artwork_ids.length > 0
-            ? request.authorized_artwork_ids
-            : request.artwork_ids
-    ) as string[] ?? [];
-    if (!artworkIds.length) return { success: false, error: "Solicitud sin obras" };
+    const allArtworkIds = (request.artwork_ids as string[]) ?? [];
+    if (!allArtworkIds.length) return { success: false, error: "Solicitud sin obras" };
 
-    // Close open movements
+    // Strict validation: For external requests with chief authorization, ONLY authorized artworks can be processed
+    let artworkIdsToMove = allArtworkIds;
+    if (request.movement_type === "external" && request.authorized_artwork_ids && request.authorized_artwork_ids.length > 0) {
+        const authorizedSet = new Set(request.authorized_artwork_ids as string[]);
+
+        if (verifiedArtworkIds && verifiedArtworkIds.length > 0) {
+            // Guard attempt verification: verify no unauthorized artwork was passed
+            const unauthorized = verifiedArtworkIds.filter((id) => !authorizedSet.has(id));
+            if (unauthorized.length > 0) {
+                return {
+                    success: false,
+                    error: "Bloqueo de seguridad: Se intentó autorizar obras no avaladas previamente por la Jefatura.",
+                };
+            }
+            artworkIdsToMove = verifiedArtworkIds.filter((id) => authorizedSet.has(id));
+        } else {
+            artworkIdsToMove = request.authorized_artwork_ids as string[];
+        }
+    }
+
+    if (!artworkIdsToMove.length) {
+        return { success: false, error: "No existen obras avaladas para autorizar en esta solicitud." };
+    }
+
+    // Close open movements for only the authorized artworks
     const { data: openMovements } = await supabase
         .from("artwork_movements").select("id")
-        .in("artwork_id", artworkIds).is("date_to", null);
+        .in("artwork_id", artworkIdsToMove).is("date_to", null);
 
     if (openMovements?.length) {
         await supabase.from("artwork_movements")
@@ -197,9 +217,9 @@ export async function authorizeRequestAction(
             .in("id", openMovements.map(m => m.id));
     }
 
-    // Create new movements
+    // Create new movements for the authorized artworks
     const { error: moveError } = await supabase.from("artwork_movements").insert(
-        artworkIds.map(id => ({
+        artworkIdsToMove.map(id => ({
             artwork_id: id,
             location: request.destination,
             date_from: new Date().toISOString(),
@@ -210,8 +230,8 @@ export async function authorizeRequestAction(
     );
     if (moveError) return { success: false, error: "Error al registrar movimientos: " + moveError.message };
 
-    // Sync artwork locations
-    await supabase.from("artworks").update({ artwork_location: request.destination }).in("id", artworkIds);
+    // Sync artwork locations for only the authorized artworks
+    await supabase.from("artworks").update({ artwork_location: request.destination }).in("id", artworkIdsToMove);
 
     // Mark authorized
     const { error: authError } = await supabase.from("movement_requests").update({
@@ -222,17 +242,21 @@ export async function authorizeRequestAction(
         security_officer_id: officerId,
     }).eq("id", requestId);
 
-    if (authError) return { success: false, error: "Error al firmar: " + authError.message };
+    if (authError) return { success: false, error: "Error al autorizar: " + authError.message };
 
     await supabase.from("audit_logs").insert({
         table_name: "movement_requests", record_id: requestId,
         action: "AUTHORIZED",
-        new_data: { security_officer_name: officerName, destination: request.destination } as any,
+        new_data: {
+            security_officer_name: officerName,
+            destination: request.destination,
+            authorized_artwork_count: artworkIdsToMove.length,
+            authorized_artwork_ids: artworkIdsToMove,
+        } as any,
         changed_by: user.id,
     });
 
     revalidatePath("/security-portal");
-    revalidatePath("/chief-portal");
     revalidatePath("/dashboard/artworks");
     revalidatePath("/dashboard");
     return { success: true };

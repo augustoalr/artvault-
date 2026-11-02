@@ -1,1 +1,1 @@
-export { compressImage, generateFileName, uploadArtworkImage, deleteArtworkImage } from "./imageService";
+export { compressImage, generateFileName, uploadArtworkImage, deleteArtworkImage, getImageUrl, getSignatureUrl } from "./imageService";
