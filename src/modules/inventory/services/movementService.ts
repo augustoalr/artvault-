@@ -153,17 +153,20 @@ export async function createBatchMovementAction(data: {
     if (!user) return { success: false, error: "No autenticado" };
     if (!data.artwork_ids || !data.artwork_ids.length) return { success: false, error: "La cesta está vacía" };
 
-    // 1. Create the Request — ALL types start at pending_bienes (2-stage approval)
+    // 1. Create the Request:
+    // - External: starts at pending_chief (Two-phase flow: Chief -> Security)
+    // - Internal: starts at pending_bienes (Bienes -> Security)
+    const initialStatus = data.movement_type === "external" ? "pending_chief" : "pending_bienes";
     const { data: request, error: reqError } = await supabase
         .from("movement_requests")
         .insert({
             movement_type: data.movement_type,
             destination: data.destination,
-            // @ts-ignore: artwork_ids is valid based on new schema
+
             artwork_ids: data.artwork_ids,
             responsible_name: data.responsible_name,
             responsible_id_number: data.responsible_id_number,
-            status: "pending_bienes", // Always starts here — Bienes approves first
+            status: initialStatus,
             created_by: user.id
         })
         .select()
@@ -182,6 +185,7 @@ export async function createBatchMovementAction(data: {
     revalidatePath("/dashboard/artworks");
     revalidatePath("/security-portal");
     revalidatePath("/bienes-portal");
+    revalidatePath("/chief-portal");
     revalidatePath("/dashboard");
 
     return { success: true, data: { requestId: request.id } };

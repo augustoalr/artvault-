@@ -461,6 +461,11 @@ export type Database = {
                     bienes_approved_at: string | null
                     bienes_officer_id: string | null
                     bienes_officer_name: string | null
+                    chief_authorized_at: string | null
+                    chief_department: string | null
+                    chief_id_number: string | null
+                    chief_name: string | null
+                    chief_signature_path: string | null
                     created_at: string | null
                     created_by: string | null
                     destination: string
@@ -474,6 +479,7 @@ export type Database = {
                     security_officer_name: string | null
                     status: Database["public"]["Enums"]["movement_request_status"] | null
                     artwork_ids: string[] | null
+                    authorized_artwork_ids: string[] | null
                 }
                 Insert: {
                     authorized_at?: string | null
@@ -481,6 +487,11 @@ export type Database = {
                     bienes_approved_at?: string | null
                     bienes_officer_id?: string | null
                     bienes_officer_name?: string | null
+                    chief_authorized_at?: string | null
+                    chief_department?: string | null
+                    chief_id_number?: string | null
+                    chief_name?: string | null
+                    chief_signature_path?: string | null
                     created_at?: string | null
                     created_by?: string | null
                     destination: string
@@ -494,6 +505,7 @@ export type Database = {
                     security_officer_name?: string | null
                     status?: Database["public"]["Enums"]["movement_request_status"] | null
                     artwork_ids?: string[] | null
+                    authorized_artwork_ids?: string[] | null
                 }
                 Update: {
                     authorized_at?: string | null
@@ -501,6 +513,11 @@ export type Database = {
                     bienes_approved_at?: string | null
                     bienes_officer_id?: string | null
                     bienes_officer_name?: string | null
+                    chief_authorized_at?: string | null
+                    chief_department?: string | null
+                    chief_id_number?: string | null
+                    chief_name?: string | null
+                    chief_signature_path?: string | null
                     created_at?: string | null
                     created_by?: string | null
                     destination?: string
@@ -514,6 +531,7 @@ export type Database = {
                     security_officer_name?: string | null
                     status?: Database["public"]["Enums"]["movement_request_status"] | null
                     artwork_ids?: string[] | null
+                    authorized_artwork_ids?: string[] | null
                 }
                 Relationships: [
                     {
@@ -543,9 +561,9 @@ export type Database = {
             }
         }
         Enums: {
-            user_role: "admin" | "editor" | "conservador" | "visitante" | "seguridad" | "bienes"
+            user_role: "admin" | "editor" | "conservador" | "visitante" | "seguridad" | "bienes" | "jefe"
             movement_request_type: "internal" | "external"
-            movement_request_status: "pending_bienes" | "pending_security" | "authorized" | "rejected"
+            movement_request_status: "pending" | "pending_bienes" | "pending_chief" | "pending_security" | "authorized" | "rejected"
         }
         CompositeTypes: {
             [_ in never]: never

@@ -16,6 +16,7 @@ interface UserRoleManagerProps {
 
 const ROLE_OPTIONS: { value: UserRole; label: string; color: string }[] = [
     { value: "admin", label: "Admin", color: "bg-art-danger/10 text-art-danger" },
+    { value: "jefe", label: "Jefe / Director", color: "bg-blue-100 text-blue-800" },
     { value: "bienes", label: "Bienes Nacionales", color: "bg-amber-100 text-amber-800" },
     { value: "editor", label: "Editor", color: "bg-art-info/10 text-art-info" },
     { value: "conservador", label: "Conservador", color: "bg-art-success/10 text-art-success" },

@@ -71,16 +71,17 @@ export async function getRequestArtworks(requestId: string) {
     const supabase = await getSupabaseServerClient();
     const { data: request } = await supabase
         .from("movement_requests")
-        .select("artwork_ids")
+        .select("artwork_ids, authorized_artwork_ids")
         .eq("id", requestId)
         .single();
 
-    if (!request?.artwork_ids?.length) return [];
+    const targetArtworkIds = (request?.authorized_artwork_ids && request.authorized_artwork_ids.length > 0 ? request.authorized_artwork_ids : request?.artwork_ids) as string[] ?? [];
+    if (!targetArtworkIds.length) return [];
 
     const { data: artworks, error } = await supabase
         .from("artworks")
         .select("id, title, inventory_number, author, technique, artwork_location, media_assets(storage_path, is_primary)")
-        .in("id", request.artwork_ids as string[]);
+        .in("id", targetArtworkIds);
 
     if (error) { console.error("getRequestArtworks:", error); return []; }
     return artworks ?? [];
@@ -178,7 +179,11 @@ export async function authorizeRequestAction(
 
     if (reqError || !request) return { success: false, error: "Solicitud no encontrada o ya procesada" };
 
-    const artworkIds = (request.artwork_ids as string[]) ?? [];
+    const artworkIds = (
+        request.authorized_artwork_ids && request.authorized_artwork_ids.length > 0
+            ? request.authorized_artwork_ids
+            : request.artwork_ids
+    ) as string[] ?? [];
     if (!artworkIds.length) return { success: false, error: "Solicitud sin obras" };
 
     // Close open movements
@@ -227,6 +232,7 @@ export async function authorizeRequestAction(
     });
 
     revalidatePath("/security-portal");
+    revalidatePath("/chief-portal");
     revalidatePath("/dashboard/artworks");
     revalidatePath("/dashboard");
     return { success: true };
