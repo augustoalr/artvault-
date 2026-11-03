@@ -7,22 +7,15 @@
 import { revalidatePath } from "next/cache";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import type { OrganizationSettings, Json } from "@/lib/supabase/types";
+import {
+    SETTINGS_KEY,
+    DEFAULT_ORGANIZATION_SETTINGS,
+} from "@/modules/admin/constants/organizationSettings";
 
-export interface ActionResult<T = unknown> {
+export type ActionResult<T = unknown> = {
     success: boolean;
     data?: T;
     error?: string;
-}
-
-export const SETTINGS_KEY = "organization_settings";
-
-export const DEFAULT_ORGANIZATION_SETTINGS: OrganizationSettings = {
-    organization_name: "Galería de Arte Nacional / Institución Pública",
-    organization_type: "public_institution",
-    require_bienes_approval: true,
-    require_chief_approval: true,
-    require_security_checkpoint: true,
-    allow_partial_authorization: true,
 };
 
 /**
@@ -148,8 +141,9 @@ export async function updateOrganizationSettings(
         revalidatePath("/security-portal");
 
         return { success: true, data: updatedSettings };
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("Error updating organization settings:", err);
-        return { success: false, error: err?.message ?? "Error desconocido" };
+        const message = err instanceof Error ? err.message : "Error desconocido";
+        return { success: false, error: message };
     }
 }

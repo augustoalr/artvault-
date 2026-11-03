@@ -8,7 +8,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logoutAction } from "@/modules/admin/actions/authActions";
 import type { UserRole, OrganizationSettings } from "@/lib/supabase/types";
-import { DEFAULT_ORGANIZATION_SETTINGS } from "@/modules/admin/services/organizationSettingsService";
+import { DEFAULT_ORGANIZATION_SETTINGS } from "@/modules/admin/constants/organizationSettings";
 
 interface SidebarProps {
     userName: string;
