@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { MovementRequest, Json } from "@/lib/supabase/types";
+import { MovementRequest, Json, MovementStatus } from "@/lib/supabase/types";
+import { getOrganizationSettings } from "@/modules/admin/services/organizationSettingsService";
+import { resolveNextStatus } from "@/modules/inventory/services/workflowResolver";
 
 // ─── Interfaces ─────────────────────────────────────────────────────────────
 
@@ -111,6 +113,11 @@ export async function getChiefRequestArtworks(requestId: string): Promise<ChiefA
 /**
  * Authorizes a movement request with chief snapshot data, partial/full artwork checklist,
  * and dual signature file.
+ *
+ * Utilizes the Configurable Workflow Engine:
+ * - If settings.require_security_checkpoint is true -> transitions to 'pending_security'
+ * - If settings.require_security_checkpoint is false -> transitions directly to 'authorized'
+ *   and executes movement records immediately.
  */
 export async function authorizeMovementByChief(
     params: AuthorizeMovementByChiefParams
@@ -226,22 +233,78 @@ export async function authorizeMovementByChief(
         }
     }
 
+    // Resolve next status via Configurable Workflow Engine
+    const settings = await getOrganizationSettings();
+    const nextStatus = resolveNextStatus({
+        currentStatus: request.status as MovementStatus,
+        movementType: request.movement_type,
+        settings,
+        action: "chief_approve",
+    });
+
+    const now = new Date().toISOString();
+    const isDirectlyAuthorized = nextStatus === "authorized";
+
+    const updatePayload: Record<string, unknown> = {
+        chief_name: params.chiefName.trim(),
+        chief_id_number: params.chiefIdNumber.trim(),
+        chief_department: params.chiefDepartment.trim(),
+        chief_authorized_at: now,
+        chief_signature_path: signatureStoragePath,
+        authorized_artwork_ids: params.authorizedArtworkIds,
+        status: nextStatus,
+    };
+
+    if (isDirectlyAuthorized) {
+        updatePayload.authorized_at = now;
+        updatePayload.authorized_by_user_id = user.id;
+    }
+
     // Update movement_requests record
     const { error: updateError } = await supabase
         .from("movement_requests")
-        .update({
-            chief_name: params.chiefName.trim(),
-            chief_id_number: params.chiefIdNumber.trim(),
-            chief_department: params.chiefDepartment.trim(),
-            chief_authorized_at: new Date().toISOString(),
-            chief_signature_path: signatureStoragePath,
-            authorized_artwork_ids: params.authorizedArtworkIds,
-            status: "pending_security",
-        })
+        .update(updatePayload)
         .eq("id", params.requestId);
 
     if (updateError) {
         return { success: false, error: "Error al registrar la autorización: " + updateError.message };
+    }
+
+    // If nextStatus is 'authorized' (security checkpoint disabled), execute physical movements immediately
+    if (isDirectlyAuthorized) {
+        const artworkIdsToMove = params.authorizedArtworkIds;
+
+        // Close open movements for only the authorized artworks
+        const { data: openMovements } = await supabase
+            .from("artwork_movements")
+            .select("id")
+            .in("artwork_id", artworkIdsToMove)
+            .is("date_to", null);
+
+        if (openMovements?.length) {
+            await supabase
+                .from("artwork_movements")
+                .update({ date_to: now })
+                .in("id", openMovements.map(m => m.id));
+        }
+
+        // Insert new movements
+        await supabase.from("artwork_movements").insert(
+            artworkIdsToMove.map(id => ({
+                artwork_id: id,
+                location: request.destination,
+                date_from: now,
+                created_by: user.id,
+                request_id: request.id,
+                notes: request.purpose ? `Propósito: ${request.purpose}` : null,
+            }))
+        );
+
+        // Sync artwork locations
+        await supabase
+            .from("artworks")
+            .update({ artwork_location: request.destination })
+            .in("id", artworkIdsToMove);
     }
 
     // Register Audit Log
@@ -249,13 +312,14 @@ export async function authorizeMovementByChief(
         await supabase.from("audit_logs").insert({
             table_name: "movement_requests",
             record_id: params.requestId,
-            action: "CHIEF_AUTHORIZED",
+            action: isDirectlyAuthorized ? "CHIEF_AND_FINAL_AUTHORIZED" : "CHIEF_AUTHORIZED",
             new_data: {
                 chief_name: params.chiefName,
                 chief_department: params.chiefDepartment,
                 authorized_artworks_count: params.authorizedArtworkIds.length,
                 total_requested_count: request.artwork_ids?.length ?? 0,
                 has_signature: !!signatureStoragePath,
+                final_status: nextStatus,
             } as unknown as Json,
             changed_by: user.id,
         });
@@ -274,6 +338,7 @@ export async function authorizeMovementByChief(
         data: {
             authorizedCount: params.authorizedArtworkIds.length,
             totalCount: request.artwork_ids?.length ?? 0,
+            status: nextStatus,
         },
     };
 }

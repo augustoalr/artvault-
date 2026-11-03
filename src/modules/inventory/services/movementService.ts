@@ -7,6 +7,8 @@
 import { revalidatePath } from "next/cache";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import type { ArtworkMovement } from "@/lib/supabase/types";
+import { getOrganizationSettings } from "@/modules/admin/services/organizationSettingsService";
+import { resolveNextStatus } from "./workflowResolver";
 
 interface CreateMovementData {
     artwork_id: string;
@@ -62,7 +64,6 @@ export async function createMovementAction(
         })
         .select()
         .single();
-
 
     if (error) {
         console.error("Error creating movement:", error);
@@ -136,9 +137,8 @@ export async function getDistinctLocations(): Promise<string[]> {
 }
 
 /**
- * Creates a batch movement request.
- * - For Internal: Creates request (authorized) + Executes movements immediately.
- * - For External: Creates request (pending).
+ * Creates a batch movement request using the Configurable Workflow Engine.
+ * Resolves initial status based on movement type (internal vs external) and organization settings.
  */
 export async function createBatchMovementAction(data: {
     artwork_ids: string[];
@@ -153,22 +153,36 @@ export async function createBatchMovementAction(data: {
     if (!user) return { success: false, error: "No autenticado" };
     if (!data.artwork_ids || !data.artwork_ids.length) return { success: false, error: "La cesta está vacía" };
 
-    // 1. Create the Request:
-    // - External: starts at pending_chief (Two-phase flow: Chief -> Security)
-    // - Internal: starts at pending_bienes (Bienes -> Security)
-    const initialStatus = data.movement_type === "external" ? "pending_chief" : "pending_bienes";
+    // Resolve initial status according to configurable workflow engine
+    const settings = await getOrganizationSettings();
+    const initialStatus = resolveNextStatus({
+        movementType: data.movement_type,
+        settings,
+        action: "create",
+    });
+
+    const isDirectlyAuthorized = initialStatus === "authorized";
+    const now = new Date().toISOString();
+
+    const insertPayload: any = {
+        movement_type: data.movement_type,
+        destination: data.destination,
+        artwork_ids: data.artwork_ids,
+        responsible_name: data.responsible_name,
+        responsible_id_number: data.responsible_id_number,
+        status: initialStatus,
+        created_by: user.id,
+    };
+
+    if (isDirectlyAuthorized) {
+        insertPayload.authorized_at = now;
+        insertPayload.authorized_by_user_id = user.id;
+    }
+
+    // 1. Create the Request
     const { data: request, error: reqError } = await supabase
         .from("movement_requests")
-        .insert({
-            movement_type: data.movement_type,
-            destination: data.destination,
-
-            artwork_ids: data.artwork_ids,
-            responsible_name: data.responsible_name,
-            responsible_id_number: data.responsible_id_number,
-            status: initialStatus,
-            created_by: user.id
-        })
+        .insert(insertPayload)
         .select()
         .single();
 
@@ -177,9 +191,36 @@ export async function createBatchMovementAction(data: {
         return { success: false, error: "Error al crear la solicitud: " + reqError.message };
     }
 
-    // Note: Movements are NOT executed immediately.
-    // They execute only after the full 2-stage approval chain:
-    //   Bienes Nacionales (approveBienesAction) → Security (authorizeRequestAction)
+    // If completely authorized (no intermediate checkpoints required), execute movements immediately
+    if (isDirectlyAuthorized) {
+        const { data: openMovements } = await supabase
+            .from("artwork_movements")
+            .select("id")
+            .in("artwork_id", data.artwork_ids)
+            .is("date_to", null);
+
+        if (openMovements?.length) {
+            await supabase
+                .from("artwork_movements")
+                .update({ date_to: now })
+                .in("id", openMovements.map(m => m.id));
+        }
+
+        await supabase.from("artwork_movements").insert(
+            data.artwork_ids.map(id => ({
+                artwork_id: id,
+                location: data.destination,
+                date_from: now,
+                created_by: user.id,
+                request_id: request.id,
+            }))
+        );
+
+        await supabase
+            .from("artworks")
+            .update({ artwork_location: data.destination })
+            .in("id", data.artwork_ids);
+    }
 
     // Revalidate paths
     revalidatePath("/dashboard/artworks");

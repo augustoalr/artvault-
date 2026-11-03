@@ -682,3 +682,20 @@ export type ArtworkConservation = Tables<"artwork_conservation">;
 export type ArtworkValuation = Tables<"artwork_valuations">;
 export type AppSetting = Tables<"app_settings">;
 export type MovementRequest = Tables<"movement_requests">;
+export type MovementStatus = Database["public"]["Enums"]["movement_request_status"];
+
+// ─── Configurable Workflow Engine ────────────────────────────────
+export type OrganizationType =
+    | "public_institution"
+    | "private_gallery"
+    | "collector"
+    | "museum";
+
+export interface OrganizationSettings {
+    organization_name: string;
+    organization_type: OrganizationType;
+    require_bienes_approval: boolean;
+    require_chief_approval: boolean;
+    require_security_checkpoint: boolean;
+    allow_partial_authorization: boolean;
+}
