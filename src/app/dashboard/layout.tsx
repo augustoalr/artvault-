@@ -4,6 +4,7 @@
  */
 import { redirect } from "next/navigation";
 import { getCurrentUserProfile } from "@/modules/admin/services/roleService";
+import { getOrganizationSettings } from "@/modules/admin/services/organizationSettingsService";
 import { DashboardSidebar } from "@/modules/admin/components/DashboardSidebar";
 
 import { MovementBasketProvider } from "@/modules/inventory/context/MovementBasketContext";
@@ -39,6 +40,8 @@ export default async function DashboardLayout({
         redirect("/");
     }
 
+    const organizationSettings = await getOrganizationSettings();
+
     return (
         <MovementBasketProvider>
             <div className="flex min-h-screen bg-art-bg-secondary">
@@ -46,6 +49,7 @@ export default async function DashboardLayout({
                 <DashboardSidebar
                     userName={profile.full_name ?? "Usuario"}
                     userRole={profile.role}
+                    organizationSettings={organizationSettings}
                 />
 
                 {/* Main Content */}
