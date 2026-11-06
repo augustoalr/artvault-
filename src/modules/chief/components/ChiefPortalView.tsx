@@ -47,9 +47,11 @@ export function ChiefPortalView({
     const [checkedArtworkIds, setCheckedArtworkIds] = useState<Set<string>>(new Set());
     const [loadingArtworks, setLoadingArtworks] = useState(false);
 
+    const isAdmin = userProfile.role === "admin";
+
     // Chief Snapshot Form State
-    const [chiefName, setChiefName] = useState(userProfile.full_name || "Lic. Custodio");
-    const [chiefIdNumber, setChiefIdNumber] = useState("");
+    const [chiefName, setChiefName] = useState(userProfile.full_name || (isAdmin ? "Administrador General" : "Lic. Custodio"));
+    const [chiefIdNumber, setChiefIdNumber] = useState(isAdmin ? "ADMIN-SUP" : "");
     const [chiefDepartment, setChiefDepartment] = useState("Dirección de Patrimonio Cultural");
     const [signature, setSignature] = useState<SignaturePayload | null>(null);
 
@@ -126,11 +128,12 @@ export function ChiefPortalView({
         }
 
         if (!chiefName.trim()) {
-            setErrorMessage("El Nombre y Apellido del Jefe autorizante es obligatorio.");
+            setErrorMessage("El Nombre y Apellido del autorizante es obligatorio.");
             return;
         }
 
-        if (!chiefIdNumber.trim()) {
+        const effectiveId = chiefIdNumber.trim() || (isAdmin ? "ADMIN-SUP" : "");
+        if (!effectiveId) {
             setErrorMessage("La Cédula de Identidad / DNI es obligatoria.");
             return;
         }
@@ -140,7 +143,7 @@ export function ChiefPortalView({
             return;
         }
 
-        if (!signature?.dataUrl) {
+        if (!signature?.dataUrl && !isAdmin) {
             setErrorMessage("Debes capturar o adjuntar tu firma digital antes de autorizar.");
             return;
         }
@@ -155,11 +158,13 @@ export function ChiefPortalView({
         setIsAuthorizing(true);
         setErrorMessage(null);
 
+        const effectiveId = chiefIdNumber.trim() || (isAdmin ? "ADMIN-SUP" : "");
+
         try {
             const result = await authorizeMovementByChief({
                 requestId: selectedRequest.id,
                 chiefName,
-                chiefIdNumber,
+                chiefIdNumber: effectiveId,
                 chiefDepartment,
                 signatureFile: signature?.dataUrl ?? null,
                 authorizedArtworkIds: Array.from(checkedArtworkIds),

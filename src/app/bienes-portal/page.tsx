@@ -27,6 +27,7 @@ export default async function BienesPortalPage() {
             requests={pendingRequests}
             historicalRequests={historicalRequests}
             userName={profile.full_name ?? "Jefe de Bienes"}
+            userRole={profile.role}
         />
     );
 }

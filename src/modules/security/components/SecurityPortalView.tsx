@@ -7,6 +7,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { MovementRequest } from "@/lib/supabase/types";
 import {
     authorizeRequestAction,
@@ -25,6 +26,7 @@ interface SecurityPortalViewProps {
     requests: MovementRequest[];
     historicalRequests: MovementRequest[];
     userName: string;
+    userRole?: string;
 }
 
 type TabType = "pending" | "history";
@@ -55,8 +57,9 @@ function relativeTime(iso: string | null) {
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 
-export function SecurityPortalView({ requests, historicalRequests, userName }: SecurityPortalViewProps) {
+export function SecurityPortalView({ requests, historicalRequests, userName, userRole }: SecurityPortalViewProps) {
     const router = useRouter();
+    const isAdmin = userRole === "admin";
     const [activeTab, setActiveTab] = useState<TabType>("pending");
 
     // TAREA 1: Filtrar la bandeja de pendientes para que SOLO muestre solicitudes en estado `pending_security`
@@ -73,7 +76,7 @@ export function SecurityPortalView({ requests, historicalRequests, userName }: S
 
     // Authorization form state
     const [officerName, setOfficerName] = useState(userName);
-    const [officerId, setOfficerId] = useState("");
+    const [officerId, setOfficerId] = useState(isAdmin ? "ADMIN-SUP" : "");
     const [isAuthorizing, setIsAuthorizing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [blockedWarning, setBlockedWarning] = useState<string | null>(null);
@@ -195,8 +198,9 @@ export function SecurityPortalView({ requests, historicalRequests, userName }: S
         setError(null);
         setBlockedWarning(null);
         try {
+            const finalOfficerId = officerId.trim() || (isAdmin ? "ADMIN-SUP" : "");
             const verifiedIds = Array.from(checkedArtworks);
-            const res = await authorizeRequestAction(selectedRequest.id, officerName, officerId, verifiedIds);
+            const res = await authorizeRequestAction(selectedRequest.id, officerName, finalOfficerId, verifiedIds);
             if (res.success) {
                 setSuccessMessage(`✓ Salida autorizada exitosamente. Solicitud #${selectedRequest.request_number} procesada.`);
                 setSelectedRequest(null);
@@ -274,9 +278,84 @@ export function SecurityPortalView({ requests, historicalRequests, userName }: S
     };
 
     return (
-        <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
-            {/* ─── Sidebar ────────────────────────────────────────── */}
-            <div className="w-80 shrink-0 border-r border-gray-200 bg-white flex flex-col shadow-xs">
+        <div className="flex flex-col h-screen bg-gray-50 overflow-hidden font-sans">
+            {/* ─── Institutional Top Navigation Bar ─────────────────── */}
+            <header className="border-b border-gray-200 bg-white px-4 sm:px-6 py-3 shadow-xs shrink-0 z-20">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    {/* Left side: Back to Dashboard & Portal Identity */}
+                    <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+                        <Link
+                            href="/dashboard"
+                            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:border-blue-400 hover:bg-blue-50/50 hover:text-blue-800 transition-all duration-150 group shadow-2xs"
+                            title="Regresar al Dashboard Principal"
+                        >
+                            <svg className="h-4 w-4 text-gray-400 group-hover:text-blue-700 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                            </svg>
+                            <span>Volver al Dashboard</span>
+                        </Link>
+
+                        <div className="h-4 w-px bg-gray-200 hidden sm:block" />
+
+                        <div className="flex items-center gap-2.5">
+                            <div className="h-8 w-8 rounded-lg bg-blue-800 flex items-center justify-center text-white shadow-xs">
+                                <svg className="h-4 w-4 text-blue-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <h1 className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">Portal de Seguridad</h1>
+                                    <span className="hidden sm:inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-800">
+                                        Control Físico y Salidas
+                                    </span>
+                                </div>
+                                <p className="text-[11px] text-gray-500 hidden md:block">
+                                    Verificación presencial de inventario y expedición de actas de salida
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right side: Supervisor Badge & User Info */}
+                    <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+                        {isAdmin && (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 px-3 py-1 text-xs font-semibold text-blue-800 shadow-2xs">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600"></span>
+                                </span>
+                                <svg className="h-3.5 w-3.5 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                </svg>
+                                Modo Supervisor (Admin)
+                            </span>
+                        )}
+
+                        <div className="hidden lg:block text-right">
+                            <p className="text-xs font-semibold text-gray-900 leading-tight">{userName}</p>
+                            <p className="text-[10px] text-gray-500 capitalize">{userRole ?? "seguridad"}</p>
+                        </div>
+
+                        <form action={logoutAction}>
+                            <button
+                                type="submit"
+                                title="Cerrar Sesión"
+                                className="text-gray-400 hover:text-red-600 transition-colors p-1.5 rounded-lg hover:bg-gray-100 cursor-pointer"
+                            >
+                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                </svg>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </header>
+
+            {/* ─── Portal Body ──────────────────────────────────────── */}
+            <div className="flex flex-1 overflow-hidden">
+                {/* ─── Sidebar ────────────────────────────────────────── */}
+                <div className={`w-full md:w-80 shrink-0 border-r border-gray-200 bg-white flex flex-col shadow-xs ${selectedRequest ? "hidden md:flex" : "flex"}`}>
                 {/* Header */}
                 <div className="px-5 py-4 border-b border-gray-200 bg-linear-to-r from-blue-900 to-blue-800 text-white">
                     <div className="flex items-center gap-2.5">
@@ -459,7 +538,7 @@ export function SecurityPortalView({ requests, historicalRequests, userName }: S
             </div>
 
             {/* ─── Main Detail Area ────────────────────────────────── */}
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className={`flex-1 flex flex-col overflow-hidden ${!selectedRequest ? "hidden md:flex" : "flex"}`}>
                 {/* Global Feedback Banners */}
                 {successMessage && (
                     <div className="m-4 rounded-xl bg-emerald-50 border border-emerald-300 p-4 text-sm text-emerald-800 flex items-center gap-3 shadow-xs animate-in fade-in">
@@ -506,9 +585,21 @@ export function SecurityPortalView({ requests, historicalRequests, userName }: S
                 ) : (
                     <>
                         {/* Request Header */}
-                        <div className="bg-white border-b border-gray-200 px-6 py-4 shadow-xs">
+                        <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4 shadow-xs">
                             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                                 <div className="min-w-0">
+                                    {/* Back to list button on mobile */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedRequest(null)}
+                                        className="md:hidden inline-flex items-center gap-1.5 text-xs text-blue-700 font-semibold mb-2 hover:underline"
+                                    >
+                                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                        </svg>
+                                        Volver a la lista
+                                    </button>
+
                                     <div className="flex flex-wrap items-center gap-3 mb-1.5">
                                         <h2 className="text-xl font-bold text-gray-900 truncate">
                                             {selectedRequest.destination}
@@ -741,12 +832,12 @@ export function SecurityPortalView({ requests, historicalRequests, userName }: S
                                     </div>
 
                                     {/* Action Buttons */}
-                                    <div className="flex items-center gap-2.5 shrink-0 pt-2 lg:pt-0">
+                                    <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0 pt-2 lg:pt-0">
                                         <button
                                             type="button"
                                             onClick={() => setShowRejectConfirm(true)}
                                             disabled={isAuthorizing}
-                                            className="px-4 py-2.5 text-sm font-semibold text-red-700 border border-red-300 rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors cursor-pointer"
+                                            className="px-4 py-2.5 text-xs sm:text-sm font-semibold text-red-700 border border-red-300 rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors cursor-pointer text-center"
                                         >
                                             Rechazar
                                         </button>
@@ -755,13 +846,13 @@ export function SecurityPortalView({ requests, historicalRequests, userName }: S
                                             type="button"
                                             onClick={handleAuthorize}
                                             disabled={
-                                                !officerId.trim() ||
+                                                (!officerId.trim() && !isAdmin) ||
                                                 !officerName.trim() ||
                                                 isAuthorizing ||
                                                 !isAllChecked ||
                                                 selectedRequest.status !== "pending_security"
                                             }
-                                            className="flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md cursor-pointer"
+                                            className="flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 text-xs sm:text-sm font-bold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md cursor-pointer text-center"
                                         >
                                             {isAuthorizing ? (
                                                 <svg className="h-4 w-4 animate-spin text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -784,6 +875,7 @@ export function SecurityPortalView({ requests, historicalRequests, userName }: S
                         </div>
                     </>
                 )}
+            </div>
             </div>
 
             {/* Modal para Inspeccionar Firma Digital del Jefe */}

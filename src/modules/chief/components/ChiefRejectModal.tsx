@@ -44,7 +44,7 @@ export function ChiefRejectModal({
             aria-labelledby="reject-modal-title"
         >
             <div
-                className="w-full max-w-md rounded-xl border border-art-border bg-art-bg-primary p-6 shadow-art-float transition-all"
+                className="w-full max-w-md rounded-xl border border-art-border bg-art-bg-primary p-4 sm:p-6 shadow-art-float transition-all max-h-[90vh] md:max-h-[85vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex items-center gap-3 border-b border-art-border pb-4 mb-4">
@@ -77,12 +77,12 @@ export function ChiefRejectModal({
                         />
                     </div>
 
-                    <div className="flex items-center justify-end gap-3 border-t border-art-border pt-4">
+                    <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 border-t border-art-border pt-4">
                         <button
                             type="button"
                             onClick={onClose}
                             disabled={isRejecting}
-                            className="rounded-lg border border-art-border px-4 py-2 text-xs font-medium text-art-fg-secondary hover:bg-art-bg-secondary disabled:opacity-50 transition-colors"
+                            className="w-full sm:w-auto rounded-lg border border-art-border px-4 py-2.5 sm:py-2 text-xs font-medium text-art-fg-secondary hover:bg-art-bg-secondary disabled:opacity-50 transition-colors text-center"
                         >
                             Cancelar
                         </button>
@@ -90,7 +90,7 @@ export function ChiefRejectModal({
                         <button
                             type="submit"
                             disabled={isRejecting}
-                            className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-red-700 disabled:opacity-50 transition-colors"
+                            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 sm:py-2 text-xs font-semibold text-white shadow-sm hover:bg-red-700 disabled:opacity-50 transition-colors text-center"
                         >
                             {isRejecting ? "Rechazando..." : "Confirmar Rechazo"}
                         </button>

@@ -13,11 +13,13 @@
     "@heroicons/react": "^2.2.0",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.95.3",
+    "@types/pg": "^8.23.1",
     "browser-image-compression": "^2.0.2",
     "date-fns": "^4.1.0",
     "jspdf": "^4.1.0",
     "jspdf-autotable": "^5.0.7",
     "next": "^16.1.6",
+    "pg": "^8.23.1",
     "puppeteer-core": "^25.16.0",
     "react": "19.2.3",
     "react-dom": "19.2.3"

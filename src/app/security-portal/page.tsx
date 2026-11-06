@@ -1,4 +1,3 @@
-
 import { redirect } from "next/navigation";
 import { getCurrentUserProfile } from "@/modules/admin/services/roleService";
 import { getPendingRequests, getHistoricalRequests } from "@/modules/security/services/securityService";
@@ -28,6 +27,7 @@ export default async function SecurityPortalPage() {
             requests={pendingRequests}
             historicalRequests={historicalRequests}
             userName={profile.full_name ?? "Oficial"}
+            userRole={profile.role}
         />
     );
 }
